@@ -22,7 +22,8 @@ btest  <- function(prices,
                    prices0 = NULL,
                    include.data = FALSE,
                    timestamp, instrument,
-                   progressBar = FALSE) {
+                   progressBar = FALSE,
+                   na.rm = FALSE) {
 
     if (convert.weights && initial.cash == 0)
         warning(sQuote("convert.weights"), " is TRUE and ",
@@ -489,7 +490,7 @@ btest  <- function(prices,
         dXs <- Xs[t, ] - if (any(initial.position != 0))
                              initial.position else 0
 
-        if (max(abs(dXs)) < tol)
+        if (any(!is.na(dXs)) && max(abs(dXs)) < tol)
             rebalance <- FALSE
 
         if (rebalance) {
@@ -585,9 +586,9 @@ btest  <- function(prices,
                                   Globals = Globals)
 
         dXs <- Xs[t, ] - X[t1, ]  ## b0
-        if (max(abs(dXs)) < tol)
+        if (any(!is.na(dXs)) && max(abs(dXs), na.rm = na.rm) < tol)
             rebalance <- FALSE
-
+        
         if (rebalance) {
             dx <- fraction * dXs
 
@@ -595,17 +596,19 @@ btest  <- function(prices,
                 open <- mO[t, ]
             else
                 open <- mC[t, ]
+            ## if (na.rm)
+            ##     incl <- !is.na(open)
 
-            sx <- dx %*% open
-            abs_sx <- (abs(dx) * tc) %*% open
+            sx <- sum(dx * open, na.rm = na.rm)
+            abs_sx <- sum(tc * abs(dx) * open, na.rm = na.rm)
             tccum[t] <- tccum[t1] + abs_sx
             cash[t] <- cash[t1] - sx - abs_sx
             X[t, ] <- X[t1, ] + dx  ## b0
             rebalance <- FALSE
         } else {
-            tccum[t] <- tccum[t1]## b0
-            cash[t] <- cash[t1]  ## b0
-            X[t, ] <- X[t1, ]    ## b0
+            tccum[t] <- tccum[t1]   ## b0
+            cash[t] <- cash[t1]     ## b0
+            X[t, ] <- X[t1, ]       ## b0
         }
 
         ## cashflow
@@ -621,7 +624,7 @@ btest  <- function(prices,
 
 
         ## WEALTH
-        v[t] <- X[t, ] %*% mC[t, ] + cash[t]
+        v[t] <- sum(X [t, ] * mC[t, ], na.rm = na.rm) + cash[t]
 
         if (doPrintInfo)
             print.info(..., Open = Open,
