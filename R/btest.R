@@ -490,7 +490,7 @@ btest  <- function(prices,
         dXs <- Xs[t, ] - if (any(initial.position != 0))
                              initial.position else 0
 
-        if (any(!is.na(dXs)) && max(abs(dXs)) < tol)
+        if (any(!is.na(dXs)) && max(abs(dXs), na.rm = na.rm) < tol)
             rebalance <- FALSE
 
         if (rebalance) {
@@ -500,8 +500,14 @@ btest  <- function(prices,
                 open <- mO[t, ,drop = TRUE]
             else
                 open <- mC[t, ,drop = TRUE]
-            sx <- dx %*% open
-            abs_sx <- (abs(dx) * tc) %*% open
+
+            incl <- if (na.rm)
+                        !is.na(Xs[t, ]) & Xs[t, ] != 0
+                    else
+                        TRUE
+
+            sx <- dx[incl] %*% open[incl]
+            abs_sx <- (abs(dx)[incl] * tc) %*% open[incl]
             tccum[t] <- abs_sx
             cash[t] <- initial.cash - sx - abs_sx
             X[t, ] <- if (any(initial.position != 0)) initial.position else 0  + dx
@@ -523,7 +529,8 @@ btest  <- function(prices,
                                       SuggestedPortfolio = SuggestedPortfolio,
                                       Globals = Globals)
 
-        v[t] <- X[t, ] %*% mC[t, ] + cash[t]
+        v[t] <- sum(X[t, incl] * mC[t, incl]) + cash[t]
+
         if (doPrintInfo)
             print.info(..., Open = Open, High = High, Low = Low,
                        Close = Close, Wealth = Wealth, Cash = Cash,
@@ -596,11 +603,14 @@ btest  <- function(prices,
                 open <- mO[t, ]
             else
                 open <- mC[t, ]
-            ## if (na.rm)
-            ##     incl <- !is.na(open)
 
-            sx <- sum(dx * open, na.rm = na.rm)
-            abs_sx <- sum(tc * abs(dx) * open, na.rm = na.rm)
+            incl <- if (na.rm)
+                        !is.na(Xs[t, ]) & Xs[t, ] != 0
+                    else
+                        TRUE
+
+            sx <- sum(dx[incl] * open[incl])
+            abs_sx <- sum(tc * abs(dx)[incl] * open[incl])
             tccum[t] <- tccum[t1] + abs_sx
             cash[t] <- cash[t1] - sx - abs_sx
             X[t, ] <- X[t1, ] + dx  ## b0
@@ -611,7 +621,7 @@ btest  <- function(prices,
             X[t, ] <- X[t1, ]       ## b0
         }
 
-        ## cashflow
+        ## CASHFLOW
         cash[t] <- cash[t] + cashflow(...,
                                       Open = Open, High = High,
                                       Low = Low, Close = Close,
@@ -624,7 +634,7 @@ btest  <- function(prices,
 
 
         ## WEALTH
-        v[t] <- sum(X [t, ] * mC[t, ], na.rm = na.rm) + cash[t]
+        v[t] <- sum(X[t, incl] * mC[t, incl]) + cash[t]
 
         if (doPrintInfo)
             print.info(..., Open = Open,
