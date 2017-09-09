@@ -23,7 +23,7 @@ btest  <- function(prices,
                    include.data = FALSE,
                    timestamp, instrument,
                    progressBar = FALSE,
-                   na.rm = FALSE) {
+                   allow.na = FALSE) {
 
     if (convert.weights && initial.cash == 0)
         warning(sQuote("convert.weights"), " is TRUE and ",
@@ -489,9 +489,18 @@ btest  <- function(prices,
 
         dXs <- Xs[t, ] - if (any(initial.position != 0))
                              initial.position else 0
-
-        if (any(!is.na(dXs)) && max(abs(dXs), na.rm = na.rm) < tol)
+        any.val <- if (allow.na)
+                       any(!is.na(dXs))
+                   else
+                       TRUE
+        if (any.val &&
+            max(abs(dXs), na.rm = allow.na) < tol)
             rebalance <- FALSE
+
+        incl <- if (allow.na)
+                    (!is.na(Xs[t, ]) & Xs[t, ] != 0) | X[t,] != 0
+                else
+                    TRUE
 
         if (rebalance) {
             dx <- fraction * dXs
@@ -501,10 +510,6 @@ btest  <- function(prices,
             else
                 open <- mC[t, ,drop = TRUE]
 
-            incl <- if (na.rm)
-                        !is.na(Xs[t, ]) & Xs[t, ] != 0
-                    else
-                        TRUE
 
             sx <- dx[incl] %*% open[incl]
             abs_sx <- (abs(dx)[incl] * tc) %*% open[incl]
@@ -529,6 +534,11 @@ btest  <- function(prices,
                                       SuggestedPortfolio = SuggestedPortfolio,
                                       Globals = Globals)
 
+        incl <- if (allow.na)
+                    incl | X[t,] != 0
+                else
+                    TRUE
+
         v[t] <- sum(X[t, incl] * mC[t, incl]) + cash[t]
 
         if (doPrintInfo)
@@ -548,7 +558,7 @@ btest  <- function(prices,
                                 width = ceiling(getOption("width")*0.8),
                                 style = 3, file = "")
 
-    for (t in max(2L, b+1L):T) {
+    for (t in max(2L, b + 1L):T) {
         if (progressBar)
             setTxtProgressBar(progr, t)
         t1 <- t - 1L
@@ -593,9 +603,16 @@ btest  <- function(prices,
                                   Globals = Globals)
 
         dXs <- Xs[t, ] - X[t1, ]  ## b0
-        if (any(!is.na(dXs)) && max(abs(dXs), na.rm = na.rm) < tol)
+        any.val <- if (allow.na)
+                       any(!is.na(dXs))
+                   else
+                       TRUE
+        if (any.val &&
+            max(abs(dXs), na.rm = allow.na) < tol)
             rebalance <- FALSE
         
+
+
         if (rebalance) {
             dx <- fraction * dXs
 
@@ -604,11 +621,10 @@ btest  <- function(prices,
             else
                 open <- mC[t, ]
 
-            incl <- if (na.rm)
-                        !is.na(Xs[t, ]) & Xs[t, ] != 0
+            incl <- if (allow.na)
+                        (!is.na(Xs[t, ]) & Xs[t, ] != 0)
                     else
                         TRUE
-
             sx <- sum(dx[incl] * open[incl])
             abs_sx <- sum(tc * abs(dx)[incl] * open[incl])
             tccum[t] <- tccum[t1] + abs_sx
@@ -634,6 +650,10 @@ btest  <- function(prices,
 
 
         ## WEALTH
+        incl <- if (allow.na)
+                    incl | X[t,] != 0
+                else
+                    TRUE
         v[t] <- sum(X[t, incl] * mC[t, incl]) + cash[t]
 
         if (doPrintInfo)
