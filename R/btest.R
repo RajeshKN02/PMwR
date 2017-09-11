@@ -498,7 +498,8 @@ btest  <- function(prices,
             rebalance <- FALSE
 
         incl <- if (allow.na)
-                    (!is.na(Xs[t, ]) & Xs[t, ] != 0) | X[t,] != 0
+                    (!is.na(Xs[t, ]) & Xs[t, ] != 0) |
+                    X[t,] != 0
                 else
                     TRUE
 
@@ -515,7 +516,7 @@ btest  <- function(prices,
             abs_sx <- (abs(dx)[incl] * tc) %*% open[incl]
             tccum[t] <- abs_sx
             cash[t] <- initial.cash - sx - abs_sx
-            X[t, ] <- if (any(initial.position != 0)) initial.position else 0  + dx
+            X[t, ] <- if (any(initial.position != 0)) initial.position else 0 + dx
             rebalance <- FALSE
         } else {
             tccum[t] <- 0
@@ -534,13 +535,15 @@ btest  <- function(prices,
                                       SuggestedPortfolio = SuggestedPortfolio,
                                       Globals = Globals)
 
+        ## update wealth
         incl <- if (allow.na)
-                    incl | X[t,] != 0
+                    (!is.na(X[t, ]) & X[t, ] != 0)
                 else
                     TRUE
 
         v[t] <- sum(X[t, incl] * mC[t, incl]) + cash[t]
 
+        
         if (doPrintInfo)
             print.info(..., Open = Open, High = High, Low = Low,
                        Close = Close, Wealth = Wealth, Cash = Cash,
@@ -620,9 +623,10 @@ btest  <- function(prices,
                 open <- mO[t, ]
             else
                 open <- mC[t, ]
-
+            
             incl <- if (allow.na)
-                        (!is.na(Xs[t, ]) & Xs[t, ] != 0)
+                        (!is.na(Xs[t , ]) & Xs[t , ] != 0) |
+                        (!is.na(X [t1, ]) & X [t1, ] != 0)
                     else
                         TRUE
             sx <- sum(dx[incl] * open[incl])
@@ -649,13 +653,14 @@ btest  <- function(prices,
                                       Globals = Globals)
 
 
-        ## WEALTH
+        ## update wealth
         incl <- if (allow.na)
-                    incl | X[t,] != 0
+                    (!is.na(X[t, ]) & X[t, ] != 0)
                 else
                     TRUE
         v[t] <- sum(X[t, incl] * mC[t, incl]) + cash[t]
 
+        
         if (doPrintInfo)
             print.info(..., Open = Open,
                             High = High,
