@@ -52,14 +52,6 @@ returns.zoo <- function(x, period = NULL, complete.first = TRUE,
     }
 }
 
-returns.btest <- function(x, period = NULL, complete.first = TRUE,
-                          pad = NA, lag = 1, ...) {
-
-    returns.NAVseries(as.NAVseries(x),
-                      period = period, complete.first = complete.first,
-                      pad = pad, lag = lag, ...)
-}
-
 returns.data.frame <- function(x, t = NULL, period = NULL,
                                complete.first = TRUE,
                                pad = NULL, position = NULL,

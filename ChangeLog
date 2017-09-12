@@ -1,7 +1,5 @@
 2017-09-11  Enrico Schumann  <es@enricoschumann.net>
 
-	* R/returns.R (returns.btest): add method
-
 	* R/NAVseries.R (as.NAVseries.btest): new
 	argument 'drop.NA' that controls whether
 	leading NAs are dropped. Default is TRUE.
