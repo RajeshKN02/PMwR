@@ -401,6 +401,24 @@ test.btest <- function() {
                 PMwR:::last(timestamp, format(timestamp, "%Y-%m")))
 
     
+
+    ## include.data
+    prices <- c(100,98,98,97,101,102,101,98,99,101)
+    signal <- function()
+        1
+    res <- btest(prices, signal = signal)
+    checkEquals(res$prices, NULL)
+    checkEquals(res$signal, NULL)
+    res <- btest(list(prices), signal = signal, include.data = TRUE)
+    checkEquals(res$prices, prices)
+    checkEquals(body(res$signal), body(signal))
+    ## !is.list(prices) && is.null(dim(prices))
+    
+    prices <- c(100,98,98,97,101,102,101,98,99,101)
+    prices <- cbind(prices, prices)
+    res <- btest(list(prices), signal = signal, include.data = TRUE)
+    checkEquals(res$prices, prices)
+    
 }
 
 test.journal <- function() {
@@ -860,9 +878,12 @@ test.pl <- function() {
                 c(0, 0, 3, 3, 3, 3, 3, 3, 3, 3))
     checkEqualsNumeric(res[[1]]$unrealised[3], 4)
     checkEqualsNumeric(res[[1]]$unrealised[4], 7)
-   
 
-    ## unsorted timestamp
+
+
+    
+
+    ## unsorted timestamp: gets sorted
     jnl <- journal(price  = c( 90, 50, 100), 
                    amount = c(  1,  1,  -2),
                    timestamp = 3:1)
@@ -1275,6 +1296,8 @@ test.returns <- function() {
     p <- position(j, when = 1:10)
     rowSums(p*prices)
 
+
+    
 }
 
 test.scale1 <- function() {
@@ -1522,4 +1545,16 @@ test.pricetable <- function() {
     pt1 <- pricetable(1:3, timestamp = 1:3, instrument = "A")[0:4 ,c("A","B","A")]
     pt2 <- pricetable(1:3, timestamp = 1:3, instrument = "A")[0:4 ,c("A","B","A"), missing = -99]
     checkTrue(all(unclass(pt2)[is.na(pt1), drop = FALSE] == -99))
+
+
+    pt <- pricetable(1:3, timestamp = 1:3, instrument = "A")[0:4 ,c("A","B","A"), missing = "locf"]
+    checkEquals(pt,
+                structure(c(NA, 1L, 2L, 3L, 3L,
+                            NA, NA, NA, NA, NA,
+                            NA, 1L, 2L, 3L, 3L),
+                          .Dim = c(5L, 3L),
+                          timestamp = 0:4,
+                          instrument = c("A", "B", "A"),
+                          class = "pricetable"))
+
 }
