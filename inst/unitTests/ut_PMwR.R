@@ -1163,9 +1163,6 @@ test.returns <- function() {
     suppressWarnings(checkEquals(returns(x, t = t),            returns(x)))
     
     ## period -- check class
-    ## require("PMwR", quietly = TRUE)
-    ## require("RUnit", quietly = TRUE)
-    ## require("zoo", quietly = TRUE, warn.conflicts = FALSE)
     t <- seq(as.Date("2012-01-01"), as.Date("2012-12-31"), by = "1 day")
     x <- seq_along(t)/10 + 100
     z <- zoo(x, t)
@@ -1297,7 +1294,13 @@ test.returns <- function() {
     rowSums(p*prices)
 
 
-    
+
+
+
+
+    ## weights/rebalance.when
+
+    ## TODO
 }
 
 test.scale1 <- function() {
@@ -1355,10 +1358,29 @@ test.scale1 <- function() {
                 rep(1, ncol(p))) ## geom. mean is zero ==
                                  ## total return is zero
 
-    ## TODO: currently only roughly in line because of non-constant
+
     ## de-meaning
-    ## checkEquals(apply(returns(P), 2, sd, na.rm = TRUE),
-    ##             rep(0.01, ncol(p))) ## sd is 0.01
+    checkEquals(apply(returns(P), 2, sd, na.rm = TRUE),
+                rep(0.01, ncol(p))) ## sd is 0.01
+
+
+
+    P1 <- cumprod(1 + c(0, rnorm(20, sd = 0.02)))
+    P1_scaled <- scale1(P1, centre = TRUE)
+
+    checkEquals(sd(returns(P1)), sd(returns(P1_scaled)))
+    checkEqualsNumeric(tail(P1_scaled,1), 1)
+
+    P2 <- cumprod(1 + c(0, rnorm(20, sd = 0.02)))
+    P2_scaled <- scale1(P2, centre = TRUE, scale = 0.03)
+
+    checkEquals(sd(returns(P2_scaled)), 0.03)
+    checkEquals(tail(P2_scaled,1),head(P2_scaled,1))
+
+    ## ... should not affect correlation
+    checkEquals(cor(returns(P1), returns(P2)),
+                cor(returns(P1_scaled), returns(P2_scaled)))
+
 
 }
 

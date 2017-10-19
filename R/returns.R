@@ -1,6 +1,66 @@
 returns <- function(x, ...)
     UseMethod("returns")
 
+returns.default <- function(x, t = NULL, period = NULL,
+                            complete.first = TRUE,
+                            pad = NULL, position = NULL,
+                            weights = NULL,
+                            rebalance.when = NULL,
+                            lag = 1, ...) {
+
+    if (is.unsorted(t)) {  ## is.unsorted(NULL) == FALSE
+        idx <- order(t)
+        t <- t[idx]
+        x <- x[idx]
+    }
+        
+    if (is.character(rebalance.when)) {
+        rebalance.when <- tolower(rebalance.when)
+        if (rebalance.when == "endofmonth")
+            rebalance.when  <- last(t, format(as.Date(t), "%Y-%m"), TRUE)
+        if (is.character(period)) {
+            warning("rebalance.when is specified, so period is ignored")
+            period <- NULL
+        }
+    }
+
+    if (is.null(t) &&
+        is.character(period)) {
+        warning("no timestamp information available, so ",
+                sQuote("period"), " is ignored")
+        period <- NULL
+    }
+
+    if (!is.null(t) &&
+        is.null(period) && is.null(rebalance.when)) {
+        warning("timestamp information ignored because ",
+                sQuote("period/rebalance.when"), " is not specified")
+        t <- NULL
+    }
+
+    if (is.null(t) &&  is.null(position) && is.null(weights)) {
+        .returns(x, pad = pad, lag = lag)
+    } else if (is.null(t) && is.null(position) && !is.null(weights)) {
+        returns_rebalance(prices = x, weights = weights,
+                          when = rebalance.when, pad = pad)
+    } else if (!is.null(t)) {
+        if (is.unsorted(t)) {
+            idx <- order(t)
+            t <- t[idx]
+            x <- x[idx]
+        }
+        if (lag != 1L)
+            warning(sQuote("lag"), " is ignored")
+        pReturns(x, t, period, complete.first, pad = pad)
+    } else {
+        if (lag != 1L)
+            warning(sQuote("lag"), " is ignored")
+        warnings("tw returns not supported any more")
+        twReturns(x, position, pad = pad)
+    }
+}
+
+
 ## ---[Handling of 'timestamp' and 'period' in methods]---
 ##
 ## Methods are responsible for 'stripping down' the input
@@ -8,7 +68,6 @@ returns <- function(x, ...)
 ## method) and then for re-assembling the original class's
 ## structure. When there is no period, methods should keep
 ## timestamp information for themselves, not pass it on.
-
 
 returns.NAVseries <- function(x, period = NULL, complete.first = TRUE,
                               pad = NULL, position = NULL, lag = 1, ...) {
@@ -28,19 +87,27 @@ returns.NAVseries <- function(x, period = NULL, complete.first = TRUE,
 }
 
 returns.zoo <- function(x, period = NULL, complete.first = TRUE,
-                        pad = NULL, position = NULL, lag = 1, ...) {
+                        pad = NULL, position = NULL,
+                        weights = NULL, rebalance.when = NULL,
+                        lag = 1, ...) {
 
     t <- time(x)
     x <- coredata(x)
 
-    if (!is.null(period)) {
+    if (!is.null(period) ||
+        (!is.null(rebalance.when) && is.character(rebalance.when))) {
         returns.default(x, t = t, period = period,
                         complete.first = complete.first,
-                        pad = pad, position = position, lag = lag, ...)
+                        pad = pad, position = position,
+                        weights = weights, rebalance.when = rebalance.when,
+                        lag = lag, ...)
     } else {
         ans <- returns.default(x, period = NULL,
-                       complete.first = complete.first,
-                       pad = pad, position = position, lag = lag, ...)
+                               complete.first = complete.first,
+                               pad = pad, position = position,
+                               weights = weights,
+                               rebalance.when = rebalance.when,
+                               lag = lag, ...)
         attrs <- attributes(ans)
         ans <- if (!is.null(pad))
                    zoo(ans, t)
@@ -48,7 +115,7 @@ returns.zoo <- function(x, period = NULL, complete.first = TRUE,
                    zoo(ans, t[-1L])
         attr(ans, "holdings") <- attrs$holdings
         attr(ans, "contributions") <- attrs$contributions
-        ans    
+        ans
     }
 }
 
@@ -65,46 +132,6 @@ returns.data.frame <- function(x, t = NULL, period = NULL,
                            rebalance.when = rebalance.when,
                            lag = lag, ...)
     as.data.frame(ans)
-}
-
-returns.default <- function(x, t = NULL, period = NULL,
-                            complete.first = TRUE,
-                            pad = NULL, position = NULL,
-                            weights = NULL,
-                            rebalance.when = NULL,
-                            lag = 1, ...) {
-
-    if (is.null(t) && is.character(period)) {
-        warning("no timestamp information available, so ",
-                sQuote("period"), " is ignored")
-        period <- NULL
-    }
-    if (!is.null(t) && is.null(period)) {
-        warning("timestamp information ignored because ",
-                sQuote("period"), " is not specified")
-        t <- NULL
-    }
-
-    if (is.null(t) &&  is.null(position) && is.null(weights)) {
-        .returns(x, pad = pad, lag = lag)
-    } else if (is.null(t) &&  is.null(position) && !is.null(weights)) {
-        returns_rebalance(prices = x, weights = weights,
-                          when = rebalance.when, pad = pad)
-    } else if (!is.null(t)) {
-        if (is.unsorted(t)) {
-            idx <- order(t)
-            t <- t[idx]
-            x <- x[idx]
-        }
-        if (!is.null(dim(x)) && min(dim(x)) > 1L)
-        if (lag != 1L)
-            warning(sQuote("lag"), " is ignored")
-        pReturns(x, t, period, complete.first, pad = pad)
-    } else {
-        if (lag != 1L)
-            warning(sQuote("lag"), " is ignored")
-        twReturns(x, position, pad = pad)
-    }
 }
 
 .returns <- function(x, pad = NULL, lag) {
@@ -150,8 +177,8 @@ twReturns <- function(price, position, pad = NULL) {
 
 ## not exported
 pReturns <- function(x, t, period, complete.first = TRUE, pad = NULL) {
-    ## TODO add also: 'previous month' and pattern 'YYYYMM'
-    
+    ## TODO add also: 'previous month' and pattern 'YYYY-?MM'
+
     x <- as.matrix(x)
     nc <- ncol(x)
     period <- tolower(period)
@@ -258,7 +285,7 @@ pReturns <- function(x, t, period, complete.first = TRUE, pad = NULL) {
         attr(ans, "t") <- t(t[ii])
         class(attr(ans, "t")) <- "Date"
         attr(ans, "period") <- period
-        
+
     } else {
         if (length(period) > 1L) {
             by <- period
@@ -547,7 +574,7 @@ returns_rebalance <- function(prices, weights, when = NULL, pad = NULL) {
         else
             h[i, ] <- h[i - 1, ]
     }
-    ans <- returns(val, pad = pad)
+    ans <- .returns(val, pad = pad, lag = 1L)
     attr(ans, "holdings") <- h
     attr(ans, "contributions") <- ctb
     ans
@@ -561,7 +588,7 @@ rc <- function(R, weights, timestamp, segments = NULL) {
                         cr
                     else if (!is.null(cr <- colnames(weights)))
                         cr
-                    else 
+                    else
                         paste0("segment_", 1:ncol(weights))
     }
     if (missing(timestamp))
@@ -574,7 +601,7 @@ rc <- function(R, weights, timestamp, segments = NULL) {
     names(df) <- c("timestamp", segments, "total")
 
     later_r <- c(rev(cumprod(1 + rev(df[["total"]])))[-1], 1)
-    
+
     total <- rep(NA_real_, ns + 1)
     names(total) <- c(segments, "total")
     for (i in seq_len(ns))
