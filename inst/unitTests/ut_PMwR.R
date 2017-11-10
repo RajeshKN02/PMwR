@@ -936,6 +936,68 @@ test.quote32 <- function() {
     
 }
 
+test.vprice <- function() {
+
+    ## single trade, instrument unnamed
+    j <- journal(amount = 1, price = 20)
+
+    p <- pl(j)   ## NA
+    checkTrue(is.na(p[[1]]$pl))
+    pl(j, vprice = 21)  ## 1
+    
+    pl(j, vprice = c(A = 21))
+    pl(j, vprice = c(B = 21))
+    checkException(pl(j, vprice = c(B = 19, A = 21)))
+
+    ## single trade, instrument named
+    j <- journal(amount = 1,
+                 price = 20,
+                 instrument = "A")
+    
+    pl(j)
+    pl(j, vprice = 21)
+    pl(j, vprice = c(A = 21))
+    pl(j, vprice = c(B = 21))
+    pl(j, vprice = c(B = 21, A = 21))
+
+
+
+    ## single trade, journal has timestamp
+    j <- journal(amount = 1,
+                 price = 20,
+                 instrument = "A",
+                 timestamp = 5)
+    
+    pl(j)
+    pl(j, vprice = 21)
+    pl(j, vprice = c(A = 21))
+    pl(j, vprice = c(B = 21))
+    pl(j, vprice = c(B = 21, A = 21))
+    
+    
+    
+    ## single trade, along.timestamp is TRUE
+    j <- journal(amount = 1,
+                 price = 20,
+                 instrument = "A",
+                 timestamp = 5)
+    
+    pl(j, along.timestamp = TRUE)
+    pl(j, along.timestamp = TRUE, vprice = 21)  ## INCORRECT: profit is labelled realised
+    
+    
+    
+    ## 
+    j <- journal(amount = 1,
+                 price = 20,
+                 instrument = "A",
+                 timestamp = 5)
+    
+    checkException(pl(j, along.timestamp = 4:6)) ## should fail: vprice must be specified
+    pl(j, along.timestamp = 4:6, vprice = c(21,20,22))
+
+}
+
 
 test.rebalance <- function() {
 
@@ -1294,13 +1356,15 @@ test.returns <- function() {
     rowSums(p*prices)
 
 
-
-
-
-
     ## weights/rebalance.when
+    ## TODO: add tests
 
-    ## TODO
+
+    
+    ## missing values
+    x <- zoo(c(NA, 2:5), as.Date("2017-10-27") + 1:5)
+    checkEqualsNumeric(unclass(returns(x, period = "month")), c(NA, 0.25))
+
 }
 
 test.scale1 <- function() {
@@ -1436,8 +1500,8 @@ test.is_valid_ISIN <- function() {
 
 test.NAVseries <- function() {
 
-    ## require("PMwR")
-    ## require("RUnit")
+    require("PMwR")
+    require("RUnit")
 
     nav <- NAVseries(1:10)
     checkEquals(c(nav), 1:10)

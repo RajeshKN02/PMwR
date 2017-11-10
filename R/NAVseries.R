@@ -65,16 +65,22 @@ print.NAVseries <- function(x, ...) {
     invisible(x)
 }
 
-summary.NAVseries <- function(object, monthly = TRUE, ...) {
+summary.NAVseries <- function(object, monthly = TRUE, na.rm = FALSE, ...) {
     ## TODO: assuming daily timestamps -- too restrictive? hourly?
     ## TODO: timestamp can also be numeric 1 .. n_obs
     isna <- is.na(object)
     nna <- sum(isna)
-    timestamp <- attr(object, "timestamp")[!isna]
-    NAV <- object[!isna]
+    if (na.rm) {
+        timestamp <- attr(object, "timestamp")[!isna]
+        NAV <- object[!isna]
+    } else {
+        timestamp <- attr(object, "timestamp")
+        NAV <- c(object)
+    }
+        
     if (!is.null(timestamp) &&
-        !inherits(try(timestampD <- as.Date(timestamp), silent = TRUE),
-                  "try-error") &&
+        !inherits(try(timestampD <- as.Date(timestamp),
+                      silent = TRUE), "try-error") &&
         !any(is.na(timestampD))) {
         NAV <- aggregate(NAV, by = list(as.Date(timestamp)), tail, 1L)[[2L]]
         timestamp <- aggregate(timestamp,
@@ -86,6 +92,7 @@ summary.NAVseries <- function(object, monthly = TRUE, ...) {
     ans$NAVseries <- object
     ans$NAV <- c(object)
     ans$timestamp <- timestamp
+    ans$timestamp <- attr(object, "timestamp")
     ans$instrument  <- if (!is.null(attr(object, "instrument")))
                           attr(object, "instrument") else NA
     ans$title       <- if (!is.null(attr(object, "title")))
@@ -125,10 +132,10 @@ summary.NAVseries <- function(object, monthly = TRUE, ...) {
                                lower = FALSE) * sq12
             ans$volatility.down <- pm(tmp, normalise = TRUE) * sq12
         } else {
-            ## TODO: assumes daily data -- too restrictive?
+            ## TODO: assumes daily data -- too restrictive: could be intraday
             ans$volatility      <- sd(returns(NAV))*16
             ans$volatility.up   <- pm(returns(NAV), normalise = TRUE,
-                               lower = FALSE)*16
+                                      lower = FALSE)*16
             ans$volatility.down <- pm(returns(NAV), normalise = TRUE)*16
         }
     } else {
@@ -197,7 +204,7 @@ print.summary.NAVseries <- function(x, ...,
     nx <- nx[nx != "title"]
     nx <- nx[nx != "description"]
     for (n in nx)
-        template <- gsub(paste0("%", n, "%"), x[[n]], template)
+        template <- gsub(paste0("%", n, "%"), x[[n]], template, fixed = TRUE)
     template <- valign(template)
     if (!x$return.annualised)
         template <- sub("(annualised)", "", template, fixed = TRUE)
@@ -247,10 +254,15 @@ toLatex.summary.NAVseries <- function(object, ...,
 
     for (field in fields) {
         field_values <- unlist(lapply(dots, `[[`, field))
-        if (field %in% perc_fields)
+        if (is.null(field_values) ||
+            length(field_values) == 0L ||
+            all(is.na(field_values)))
+            field_values <- rep("NA", ns)
+        else if (field %in% perc_fields)
             field_values <- fmt_p(field_values)
         for (i in seq_len(ns))
-            ans[i] <- gsub(paste0("%", field), field_values[i], ans[i])
+            ans[i] <- gsub(paste0("%", field), field_values[i], ans[i],
+                           fixed = TRUE)
     }
 
     NAVs <- lapply(dots, `[[`, "NAV")
