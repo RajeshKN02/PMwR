@@ -8,8 +8,9 @@
   Testing trading and investment strategies.
 }
 \usage{
-btest(prices, signal, do.signal = TRUE, do.rebalance = TRUE,
-      print.info = NULL, b = 1L, fraction = 1,
+btest(prices, signal,
+      do.signal = TRUE, do.rebalance = TRUE,
+      print.info = NULL, b = 1, fraction = 1,
       initial.position = 0, initial.cash = 0,
       final.position = FALSE,
       cashflow = NULL, tc = 0, \dots,
@@ -26,15 +27,15 @@ btest(prices, signal, do.signal = TRUE, do.rebalance = TRUE,
     \code{prices[[1]]} is then a matrix with \code{n} columns containing
     the open prices for the assets; \code{prices[[2]]} is a matrix with
     the high prices, and so on. If only close prices are used, then for
-    a single asset, either a matrix of one column or a numeric vector;
+    a single asset either a matrix of one column or a numeric vector;
     for multiple assets a list of length one, containing the matrix of
-    close prices. (For example, with 100 close prices of 5 assets, the
+    close prices. For example, with 100 close prices of 5 assets, the
     prices should be arranged in a matrix \code{p} of size 100 times 5;
-    and \code{prices = list(p)}.)
+    and \code{prices = list(p)}.
 
-    The series in \code{prices} are also used to value
-    the positions that are created. If signals are to
-    be based on other series, then these other series
+    The series in \code{prices} are used both as transaction prices
+    and for valuing open positions. If signals are to
+    be based on other series, such other series
     should be passed via the \dots argument.
     
   }
@@ -49,22 +50,23 @@ btest(prices, signal, do.signal = TRUE, do.rebalance = TRUE,
     Logical/numeric vector or function that evaluates to \code{TRUE} or
     \code{FALSE}. Default is \code{TRUE}: a signal is then computed in
     every period. When a logical/numeric vector, its length must match
-    the number of observations in prices: \code{so.signal} then gives
+    the number of observations in prices: \code{do.signal} then gives
     the rows in \code{prices} at which a signal is computed.  Can also
-    be the string \dQuote{firstofmonth} or \dQuote{lastofmonth} or
-    \dQuote{firstofquarter}; in this case, \code{timestamp} needs to
+    be the string \dQuote{firstofmonth}, \dQuote{lastofmonth}, 
+    \dQuote{firstofquarter} or \dQuote{lastofquarter};
+    in these cases, \code{timestamp} needs to
     specified and must be coercable to \code{\link{Date}}.
 
   }
   \item{do.rebalance}{    
-    Same as \code{do.signal}. Can also be the string "do.signal", in
-    which case the actual result from \code{do.signal} is copied.
+    Same as \code{do.signal}. Can also be the string \code{"do.signal"},
+    in which case the value of \code{do.signal} is copied.
   }
   \item{print.info}{
-    A function. If \code{NULL}, nothing is printed. See Details.
+    A function or \code{NULL}. If \code{NULL}, nothing is printed. See Details.
   }
   \item{cashflow}{
-    A function. Default is \code{NULL}.
+    A function or \code{NULL} (default).
   }
   \item{b}{
     burn-in (an integer). Defaults to 1.
@@ -73,8 +75,10 @@ btest(prices, signal, do.signal = TRUE, do.rebalance = TRUE,
     amount of rebalancing to be done (a scalar between 0 and 1)
   }
   \item{initial.position}{
+
     initial portfolio (a numeric vector).  If supplied, this will also
     be the initial suggested position.
+
   }
   \item{initial.cash}{
     a numeric vector of length 1. Defaults to 0.
@@ -97,7 +101,7 @@ btest(prices, signal, do.signal = TRUE, do.rebalance = TRUE,
 
     Default is \code{FALSE}. \code{TRUE} is \strong{not implemented} --
     but would mean that \code{signal} should evaluate to \emph{changes}
-    in position, i.e., orders.
+    in position, i.e. orders.
 
   }
   \item{lag}{default is 1}
@@ -155,11 +159,14 @@ btest(prices, signal, do.signal = TRUE, do.rebalance = TRUE,
 }
 \details{
   
-  The function provides an accounting framework for
-  trading rules. The basic ingredients are time series
+  The function provides infrastructure for testing trading
+  rules. Essentially, \code{btest} does accounting: keep track of
+  transactions and positions, value open positions, etc.
+
+  The basic ingredients are time series
   in the form of \acronym{OHLC} bars (which need not be
   equally spaced) and several functions that map these
-  series into positions.
+  series and other pieces of information into positions.
   
   \code{backtest} runs a loop from \code{b + 1} to
   \code{NROW(prices)}. In iteration \code{t}, a
@@ -175,8 +182,8 @@ btest(prices, signal, do.signal = TRUE, do.rebalance = TRUE,
   larger time offset (i.e. use information from
   periods \code{<< t}).
 
-  If no \acronym{ohlc} bar are available, a single
-  series (assumed to be close prices) can be passed. In
+  If no \acronym{ohlc} bars are available, a single
+  series per asset (assumed to be close prices) can be passed. In
   effect, we might then use information up to the close
   of \code{t - 1}, and trade at the close of \code{t}.
 
@@ -194,7 +201,7 @@ btest(prices, signal, do.signal = TRUE, do.rebalance = TRUE,
   \code{\link{environment}}, which can be used to
   persistently store data during the run of
   \code{btest}. Use the argument \code{Globals}
-  to add initial objects to this list.
+  to add initial objects.
   
 }
 \value{
@@ -218,15 +225,15 @@ btest(prices, signal, do.signal = TRUE, do.rebalance = TRUE,
 \references{
 Schumann, E. (2017) \emph{Portfolio Management
   with R}. \url{http://enricoschumann.net/PMwR/}
-
 } 
 \author{
-Enrico Schumann <es@enricoschumann.net>
+  Enrico Schumann <es@enricoschumann.net>
 }
 \examples{
 ## For more examples, please see then Manual
 ## http://enricoschumann.net/R/packages/PMwR/manual/PMwR.html
 
+## 1 - a simple rule
 timestamp <- structure(c(16679L, 16680L, 16681L, 16682L, 
                          16685L, 16686L, 16687L, 16688L, 
                          16689L, 16692L, 16693L), 
@@ -250,4 +257,36 @@ journal(solution)
 solution <- btest(prices = prices, signal = signal,
                   timestamp = timestamp)
 journal(solution)
+
+
+
+## 2 - a simple MA model
+\dontrun{
+require("PMwR")
+require("NMOF")
+
+dax <- DAX[[1]]
+
+n <- 5
+ma <- MA(dax, n, pad = NA)
+
+ma_strat <-  function(ma) {
+    if (Close() > ma[Time()])
+        1
+    else
+        0
+}
+
+
+plot(as.Date(row.names(DAX)), dax, type = "l", xlab = "", ylab = "DAX")
+lines(as.Date(row.names(DAX)), ma, type = "l")
+
+res <- btest(dax, signal = ma_strat,
+             b = n, ma = ma)
+
+par(mfrow = c(3,1))
+plot(as.Date(row.names(DAX)), dax, type = "l", xlab = "", ylab = "DAX")
+plot(as.Date(row.names(DAX)), res$wealth, type = "l", xlab = "", ylab = "Equity")
+plot(as.Date(row.names(DAX)), position(res), type = "s", xlab = "", ylab = "Position")
+}
 }
