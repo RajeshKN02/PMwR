@@ -1,3 +1,24 @@
+2018-01-01  Enrico Schumann  <es@enricoschumann.net>
+
+	* DESCRIPTION (Version): 0.7-0
+
+2017-12-27  Enrico Schumann  <es@enricoschumann.net>
+
+	* R/quote32.R (print.quote32): use
+	'print.default' instead of 'cat'
+
+	* R/rebalance.R (print.rebalance): suppress
+	scientific notation
+
+	* R/internals.R (sparkline): rename internal
+	function sparklines => sparkline;
+	rename arguments/add arguments
+
+2017-12-12  Enrico Schumann  <es@enricoschumann.net>
+
+	* inst/unitTests/ut_PMwR.R: add check for empty
+	journal
+
 2017-12-08  Enrico Schumann  <es@enricoschumann.net>
 
 	* R/pl.R (pl.data.frame): new method
@@ -26,7 +47,7 @@
 
 2017-11-16  Enrico Schumann  <es@enricoschumann.net>
 
-	* DESCRIPTION (Version): Version: 0.6-1
+	* DESCRIPTION (Version): 0.6-1
 
 	* R/div_adjust.R (split_adjust): fix handling
 	of several splits per series
@@ -40,7 +61,7 @@
 
 2017-11-16  Enrico Schumann  <es@enricoschumann.net>
 
-        * DESCRIPTION (Version): Version: 0.6-0
+        * DESCRIPTION (Version): 0.6-0
 
         * R/btest.R (btest): rename arguments
 
