@@ -11,10 +11,9 @@ plot_trading_hours <-
              from = NULL, to = NULL,
              do.plot = TRUE,
              axis1.par = list()) {
-        
     if (as.character(sys.call(sys.parent()))[1L] == "plotTradingHours")
         .Deprecated("plot_trading_hours")
-            
+
     ## plot
     plot.par.def <- list(type = "l", xaxt = "n",
                          xlab = "", ylab = "")
@@ -44,6 +43,12 @@ plot_trading_hours <-
         }
     }
 
+    if (inherits(t, "Date")) {
+        if (!labels %in% c("day", "month"))
+            labels <- "day"
+        interval <- "1 day"
+    }
+    
     fromHHMMSS <- makeHHMMSS(fromHHMMSS)
     toHHMMSS   <- makeHHMMSS(toHHMMSS)
 
@@ -59,6 +64,10 @@ plot_trading_hours <-
     ## aggregate data to grid (last)
     by <- roundPOSIXt(t, interval = interval)
     values <- last(x, by)
+    if (inherits(t, "Date")) {
+        by <- as.Date(as.POSIXlt(by))
+        grd <- as.Date(as.POSIXlt(grd))
+    }
     t <- unique(by)
     
     ## match to grid
@@ -89,7 +98,7 @@ plot_trading_hours <-
     } else if (grepl("month", labels, ignore.case = TRUE)) {
         pos <- which(abs(diff(as.POSIXlt(grd)$mon)) > 0) + 1
         fmt <- if (is.null(label.format))
-            "%d.%m." else label.format
+            "%b %y" else label.format
     }
     
     if (do.plot) {

@@ -18,7 +18,8 @@ test.position <- function() {
     ## ... 1) check correct position for *vector* input
     checkEquals(c(position(amount = n, timestamp = t, when = 4.9)),
                 4)
-    checkEquals(c(position(amount = n, timestamp = t, when = c(-10,1.4,4.9,10))),
+    checkEquals(c(position(amount = n, timestamp = t,
+                           when = c(-10,1.4,4.9,10))),
                 c(0, 1, 4, 0))
 
     ## ... 2) check correct position for *journal* input
@@ -52,6 +53,23 @@ test.position <- function() {
                                     when = "endofmonth")),
                 1:12)
 
+    
+    ## ... endofday
+    t <- as.POSIXct(c("2017-11-17 12:00:00",
+                      "2017-11-17 13:00:00",
+                      "2017-11-21 12:00:00"))
+
+    res <- position(c(1,1,1), timestamp = t,
+                    when = "endofday")
+
+    checkEquals(as.numeric(res), 2:3)
+    checkEquals(attr(res, "timestamp"), unique(as.Date(t)))
+
+    res <- position(c(1,-1,1), timestamp = t,
+                    when = "endofday")
+
+    checkEquals(as.numeric(res), 0:1)
+    checkEquals(attr(res, "timestamp"), unique(as.Date(t)))
     
 }
 
@@ -248,7 +266,7 @@ test.btest <- function() {
 
 
     ## with timestamp
-    require("datetimeutils")
+    require("datetimeutils", quietly = TRUE)
     timestamp <- seq(from = as.Date("2015-01-01"),
                      to   = as.Date("2015-04-15"),
                      by   = "1 day")
@@ -348,7 +366,7 @@ test.btest <- function() {
     ## buy at specified timestamps (integers; no lag!)
     when <- c(10,20,30)
     j <- journal(btest(prices = prices,
-                       signal = signal, 
+                       signal = signal,
                        do.signal = when))
     checkEquals(j$timestamp, when)
     
@@ -418,6 +436,26 @@ test.btest <- function() {
     prices <- cbind(prices, prices)
     res <- btest(list(prices), signal = signal, include.data = TRUE)
     checkEquals(res$prices, prices)
+
+
+
+
+
+
+
+
+    ## lags
+    prices <- 101:110
+    signal <- function()
+        if (Close() >= 104)
+            1
+
+    btest(prices, signal,          b=3)$journal
+    btest(prices, signal, lag = 0, b=3)$journal
+    btest(prices, signal, lag = 2, b=3)$journal
+
+
+
     
 }
 
@@ -494,12 +532,32 @@ test.journal <- function() {
     ## method: c
     jj <- c(j, j)
 
+    ## method: length
+    checkEquals(length(jj), 10L)
+
     ## method: sort
     checkEquals(sort(jj)$timestamp, rep(1:5, each = 2))
     checkEquals(sort(jj, decreasing = TRUE)$timestamp, rep(5:1, each = 2))
     
-    ## method: length
-    checkEquals(length(jj), 10L)
+
+    j <- journal(amount = 1:4,
+                 instrument = c("a", "b", "a", "b"),
+                 timestamp = c(1,1,2,2))
+    checkEquals(sort(j)$timestamp, c(1,1,2,2))
+    checkEquals(sort(j, decreasing = TRUE)$timestamp, c(2,2,1,1))
+
+    sj <- sort(j, by = c("instrument", "timestamp"))
+    checkEquals(sj$timestamp, c(1,2,1,2))
+    checkEquals(sj$instrument, c("a", "a", "b", "b"))
+    checkEquals(sj$amount, c(1,3,2,4))
+
+    sj <- sort(j, by = c("instrument", "timestamp"),
+               decreasing = TRUE)
+    checkEquals(sj$timestamp, rev(c(1,2,1,2)))
+    checkEquals(sj$instrument, rev(c("a", "a", "b", "b")))
+    checkEquals(sj$amount, rev(c(1,3,2,4)))
+
+    
 
     ## method: head/tail
     timestamp <- 1:20
@@ -947,7 +1005,100 @@ test.pl <- function() {
     jnl <- journal(price  = c( 90, 50, 100), 
                    amount = c(  1,  1,  -2))
     checkEquals(pl(jnl, along.timestamp = TRUE)[[1]]$timestamp, 1:3)
+
+
+
+    ## data.frame method
+    D <- data.frame(price = c(100,102),
+                    amount = c(1,-1))
+    J <- journal(price = c(100,102),
+                 amount = c(1,-1))
+    checkEquals(pl(D), pl(J))
+                
+
+    ## empty journal: pl/volume should be zero
+    checkEquals(pl(journal()),
+                structure(list(
+                    structure(list(pl = 0,
+                                   realised = NA,
+                                   unrealised = NA, 
+                                   buy = NaN,
+                                   sell = NaN,
+                                   volume = 0),
+                              .Names = c("pl", "realised", "unrealised",
+                                         "buy", "sell", "volume"))),
+                    class = "pl",
+                    along.timestamp = FALSE,
+                    instrument = NA))
     
+
+
+
+
+
+
+    ## https://quant.stackexchange.com/questions/36505/calculate-day-to-day-change-in-value-of-open-position
+    j <- journal(amount = c(100, -100),
+                 price = c(7418.04, 7433.29),
+                 timestamp = as.POSIXct(c("20070829  1400",
+                                          "20070829  1724"),
+                                        format = "%Y%m%d  %H%M"))
+    checkEquals(pl(j)[[1]]$pl, 1525)
+    checkEquals(pl(j),
+                structure(list(structure(
+                    list(pl = 1525,
+                         realised = NA,
+                         unrealised = NA,
+                         buy = 7418.04,
+                         sell = 7433.29,
+                         volume = 200),
+                    .Names = c("pl", "realised",
+                               "unrealised",
+                               "buy", "sell",
+                               "volume"))),
+                    class = "pl",
+                    along.timestamp = FALSE,
+                    instrument = NA))
+    
+    timestamp <- as.POSIXct(
+        c("20070829  0900", "20070829  1000", "20070829  1100",
+          "20070829  1200", "20070829  1300", "20070829  1400",
+          "20070829  1500", "20070829  1600", "20070829  1724",
+          "20070830  0900", "20070830  1000", "20070830  1100",
+          "20070830  1200", "20070830  1300", "20070830  1400",
+          "20070830  1500", "20070830  1600", "20070830  1724",
+          "20070831  0900", "20070831  1000"),
+        format = "%Y%m%d  %H%M")
+
+    close <- c(7372.1 , 7372.16, 7428.72, 7418.13, 7422.03,
+               7418.04, 7426.8 , 7414.65, 7433.29, 7478.72,
+               7464.2 , 7475.08, 7456.95, 7429.93, 7444.99,
+               7420.8 , 7479.4 , 7487.42, 7554.82, 7552.3)
+    
+    checkEquals(pl(j, along.timestamp = timestamp, vprice = close)[[1]]$pl,
+                structure(c(0, 0, 0, 0, 0, 0, 876, -339, 1525, 1525, 1525, 1525, 
+                            1525, 1525, 1525, 1525, 1525, 1525, 1525, 1525),
+                          .Names = c("2007-08-29 09:00:00",
+                                     "2007-08-29 10:00:00",
+                                     "2007-08-29 11:00:00",
+                                     "2007-08-29 12:00:00",
+                                     "2007-08-29 13:00:00",
+                                     "2007-08-29 14:00:00",
+                                     "2007-08-29 15:00:00",
+                                     "2007-08-29 16:00:00",
+                                     "2007-08-29 17:24:00",
+                                     "2007-08-30 09:00:00",
+                                     "2007-08-30 10:00:00",
+                                     "2007-08-30 11:00:00",
+                                     "2007-08-30 12:00:00",
+                                     "2007-08-30 13:00:00",
+                                     "2007-08-30 14:00:00",
+                                     "2007-08-30 15:00:00",
+                                     "2007-08-30 16:00:00",
+                                     "2007-08-30 17:24:00",
+                                     "2007-08-31 09:00:00",
+                                     "2007-08-31 10:00:00")))
+
 }
 
 
@@ -1050,8 +1201,88 @@ test.vprice <- function() {
                  timestamp = 5)
     
     checkException(pl(j, along.timestamp = 4:6), silent = TRUE) ## should fail: vprice must be specified
-    pl(j, along.timestamp = 4:6, vprice = c(21,20,22))
+    p <- pl(j, along.timestamp = 4:6, vprice = c(21,20,22))
+    checkEqualsNumeric(p[[1]]$pl, c(0,0,2))
+    checkEqualsNumeric(p[[1]]$realised[-1], c(0,0))
+    checkEqualsNumeric(p[[1]]$unrealised[-1], c(0,2))
 
+
+
+    ## 
+    J <- journal(instrument = c("A", "B", "B"),
+                 amount = c(1, 1, -1),
+                 price = c(100, 10, 11),
+                 timestamp = c(1, 1, 2))
+    
+    P <- cbind(c(100, 101, 105),
+               c(10, 12, 9))
+    colnames(P) <- c("A", "B")
+
+    p <- pl(J,
+            along.timestamp = 1:3,
+            vprice = P)
+
+    checkEquals(length(p), 2)
+    checkEqualsNumeric(p[[1]]$pl,         c(0,1,5))
+    checkEqualsNumeric(p[[1]]$realised,   c(0,0,0))
+    checkEqualsNumeric(p[[1]]$unrealised, c(0,1,5))
+    checkEqualsNumeric(p[[2]]$pl,         c(0,1,1))
+    checkEqualsNumeric(p[[2]]$realised,   c(0,1,1))
+    checkEqualsNumeric(p[[2]]$unrealised, c(0,0,0))
+
+    ## switch columns
+    P <- cbind(c(10, 12, 9),
+               c(100, 101, 105))
+    colnames(P) <- c("B", "A")
+    p <- pl(J,
+            along.timestamp = 1:3,
+            vprice = P)
+
+    checkEquals(length(p), 2)
+    checkEqualsNumeric(p[[1]]$pl,         c(0,1,5))
+    checkEqualsNumeric(p[[1]]$realised,   c(0,0,0))
+    checkEqualsNumeric(p[[1]]$unrealised, c(0,1,5))
+    checkEqualsNumeric(p[[2]]$pl,         c(0,1,1))
+    checkEqualsNumeric(p[[2]]$realised,   c(0,1,1))
+    checkEqualsNumeric(p[[2]]$unrealised, c(0,0,0))
+
+    ## only single instrument
+    P <- cbind(c(10, 12, 9),
+               c(100, 101, 105))
+    colnames(P) <- c("B", "A")
+    p <- pl(J[1],
+            along.timestamp = 1:3,
+            vprice = P)
+
+    checkEquals(length(p), 1)
+    checkEqualsNumeric(p[[1]]$pl,         c(0,1,5))
+    checkEqualsNumeric(p[[1]]$realised,   c(0,0,0))
+    checkEqualsNumeric(p[[1]]$unrealised, c(0,1,5))
+
+    ## only single instrument, 2
+    P <- cbind(c(10, 12, 9),
+               c(100, 101, 105))
+    colnames(P) <- c("B", "A")
+    p <- pl(J[2:3],
+            along.timestamp = 1:3,
+            vprice = P)
+
+    checkEquals(length(p), 1)
+    checkEqualsNumeric(p[[1]]$pl,         c(0,1,1))
+    checkEqualsNumeric(p[[1]]$realised,   c(0,1,1))
+    checkEqualsNumeric(p[[1]]$unrealised, c(0,0,0))
+    
+
+    ## do.sum
+    p <- pl(J,
+            along.timestamp = 1:3,
+            vprice = P, do.sum = TRUE)
+
+    checkEqualsNumeric(p[[1]]$pl,         c(0,2,6))
+    checkEqualsNumeric(p[[1]]$realised,   c(0,1,1))
+    checkEqualsNumeric(p[[1]]$unrealised, c(0,1,5))
+    checkEquals(length(p), 1)
+    
 }
 
 
@@ -1426,16 +1657,16 @@ test.returns <- function() {
 test.scale1 <- function() {
 
     p <- c(104, 108, 104)
-    checkEquals(scale1(p), p/104)
-    checkEquals(scale1(p, when = 2), p/108)
+    checkEqualsNumeric(scale1(p), p/104)
+    checkEqualsNumeric(scale1(p, when = 2), p/108)
     checkEquals(sd(returns(scale1(p, scale = TRUE))), 1)
     checkEquals(scale1(p, when = 2, scale = TRUE)[2L], 1) 
 
     ## NA handling
     p <- cbind(c(104, 108, 104, 105),
                c( NA, 108, 104, 105))    
-    checkEquals(scale1(p), p/108)
-    checkEquals(scale1(p, level = 100), p/1.08)
+    checkEqualsNumeric(scale1(p), p/108)
+    checkEqualsNumeric(scale1(p, level = 100), p/1.08)
 
     p <- cbind(c(104, 108, 104, 105),
                c(103, 108, 104, 105))    
@@ -1556,8 +1787,8 @@ test.is_valid_ISIN <- function() {
 
 test.NAVseries <- function() {
 
-    require("PMwR")
-    require("RUnit")
+    ## require("PMwR")
+    ## require("RUnit")
 
     nav <- NAVseries(1:10)
     checkEquals(c(nav), 1:10)
@@ -1592,8 +1823,8 @@ test.NAVseries <- function() {
     checkEquals(sum.nav$nobs, 10)
 
     ## scale1
-    checkEquals(scale1(NAVseries(10:15), level = 100),
-                NAVseries((10:15)*10))
+    checkEqualsNumeric(scale1(NAVseries(10:15), level = 100),
+                       NAVseries((10:15)*10))
 
 
    
@@ -1678,7 +1909,7 @@ test.pricetable <- function() {
                           .Dim = c(5L, 3L),
                           timestamp = 0:4,
                           instrument = c("A", "B", "A"),
-                          class = "pricetable"))        
+                          class = "pricetable"))
 
     pt1 <- pricetable(1:3, timestamp = 1:3, instrument = "A")[0:4 ,c("A","B","A")]
     pt2 <- pricetable(1:3, timestamp = 1:3, instrument = "A")[0:4 ,c("A","B","A"), missing = -99]
@@ -1694,5 +1925,79 @@ test.pricetable <- function() {
                           timestamp = 0:4,
                           instrument = c("A", "B", "A"),
                           class = "pricetable"))
+
+}
+
+test.div_adjust <- function() {
+
+    ## no adjustments
+    x <- 10
+    div <- 5
+    t <- 0
+    checkEquals(div_adjust(x, t, div), 10)
+    checkEquals(div_adjust(x, t, div, backward = FALSE), 10)
+    t <- 1
+    checkEquals(div_adjust(x, t, div), 10)
+    checkEquals(div_adjust(x, t, div, backward = FALSE), 10)
+    t <- 2
+    checkEquals(div_adjust(x, t, div), 10)
+    checkEquals(div_adjust(x, t, div, backward = FALSE), 10)
+
+
+    ## one adjustment
+    x <- c(10, 5)
+    div <- 5
+    t <- 2
+    checkEquals(div_adjust(x, t, div),
+                c(5, 5))
+    checkEquals(div_adjust(x, t, div, backward = FALSE),
+                c(10, 10))
+
+
+    ## two adjustments
+    x <- c(10,5,10,5)
+    div <- 5
+    t <- c(2,4)
+    checkEquals(div_adjust(x, t, div), rep(5, 4))
+    checkEquals(div_adjust(x, t, div, backward = FALSE), rep(10,4))
+
+}
+
+
+test.split_adjust <- function() {
+
+    ## no adjustments
+    x <- 10
+    t <- 0
+    ratio <- 5
+    checkEquals(split_adjust(x, t, ratio), 10)
+    checkEquals(split_adjust(x, t, ratio, backward = FALSE), 10)
+    t <- 1
+    checkEquals(split_adjust(x, t, ratio), 10)
+    checkEquals(split_adjust(x, t, ratio, backward = FALSE), 10)
+    t <- 2
+    checkEquals(split_adjust(x, t, ratio), 10)
+    checkEquals(split_adjust(x, t, ratio, backward = FALSE), 10)
+
+
+    ## one adjustment
+    x <- c(10, 2)
+    t <- 2
+    ratio <- 5
+    checkEquals(split_adjust(x, t, ratio),
+                c(2, 2))
+    checkEquals(split_adjust(x, t, ratio, backward = FALSE),
+                c(10, 10))
+
+
+    ## two adjustments
+    x <- c(10, 5, 5, 1)
+    t <- c(2, 4)
+    ratio <- c(2,5)
+    checkEquals(split_adjust(x, t, ratio),
+                rep(1,4))
+    checkEquals(split_adjust(x, t, ratio, backward = FALSE),
+                rep(10,4))
+
 
 }

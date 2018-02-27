@@ -1,5 +1,3 @@
-## useDynLib(PMwR)
-
 importFrom(NMOF, drawdown)
 importFrom(NMOF, pm)
 importFrom(stats, aggregate)
@@ -19,7 +17,7 @@ importFrom(datetimeutils, first_of_month)
 importFrom(datetimeutils, roundPOSIXt)
 importFrom(datetimeutils, timegrid)
 importFrom(crayon, bold)
-importFrom(fastmatch, fmatch)
+importFrom("fastmatch", fmatch)
 
 importFrom("grDevices",
            "grey")
@@ -30,7 +28,8 @@ importFrom("stats",
 importFrom("utils",
            "browseURL", "capture.output", "setTxtProgressBar",
            "str", "txtProgressBar",
-           "head", "tail", "toLatex")
+           "head", "tail", "toLatex",
+           "write.table")
 
 export(
     .expand,
@@ -44,6 +43,7 @@ export(
     btest,
     close_on_first,
     div_adjust,
+    drawdowns,
     "instrument<-",
     instrument,
     is.journal,
@@ -72,14 +72,16 @@ export(
     )
 
 ## S3method(`[`, position)
-S3method(`+`, quote32)
-S3method(`-`, quote32)
 S3method(Ops, position)
 S3method(Ops, quote32)
+S3method(`+`, quote32)
+S3method(`-`, quote32)
 S3method(`[<-`, journal)
 S3method(`[<-`, pricetable)
 S3method(`[`, journal)
 S3method(`[`, pricetable)
+S3method(`instrument<-`, pricetable)
+S3method(`names<-`, pricetable)
 S3method(aggregate, journal)
 S3method(as.NAVseries, NAVseries)
 S3method(as.NAVseries, btest)
@@ -98,16 +100,18 @@ S3method(as.zoo, NAVseries)
 S3method(as.zoo, p_returns)
 S3method(as.zoo, position)
 S3method(c, journal)
+S3method(drawdowns, default)
 S3method(head, journal)
 S3method(instrument, journal)
 S3method(instrument, position)
 S3method(instrument, pricetable)
-S3method(`instrument<-`, pricetable)
 S3method(journal, btest)
 S3method(journal, default)
 S3method(length, journal)
 S3method(lines, btest)
+S3method(names, pricetable)
 S3method(pl, btest)
+S3method(pl, data.frame)
 S3method(pl, default)
 S3method(pl, journal)
 S3method(pl, pl)
@@ -149,5 +153,3 @@ S3method(toOrg, journal)
 S3method(toText, p_returns)
 S3method(valuation, default)
 S3method(valuation, journal)
-S3method(names, pricetable)
-S3method(`names<-`, pricetable)

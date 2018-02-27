@@ -56,8 +56,9 @@ position.default <- function(amount, timestamp, instrument,
                                          first_of_month(max(timestamp)),
                                          by = "1 month"))
             } else if (when[[1L]] == "endofday") {
+                timestamp <- as.Date(timestamp)
                 when <- last(timestamp,
-                             format(as.Date(timestamp), "%Y-%m-%d"))
+                             format(timestamp, "%Y-%m-%d"))
             } else if (when[[1L]] == "first" ||
                      when[1L] == "oldest")
                 when <- min(timestamp)
@@ -195,7 +196,10 @@ print.position <- function(x, ..., sep = ":") {
     } else if (dim(x)[1L] > 1L) {
         print(unclass(x), na.print = "")
     } else {
-        print(t(unclass(x)), na.print = "")
+        if (is.na(timestamp))
+            write.table(t(unclass(x)), col.names = FALSE, quote = FALSE)
+        else
+            print(t(unclass(x)), na.print = "")
     }
     invisible(original.x)
 }

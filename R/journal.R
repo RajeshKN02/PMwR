@@ -18,7 +18,24 @@ journal.position <- function(x, price, ...) {
 }
 
 journal.default <- function(amount, price, timestamp, instrument,
-                    id = NULL,  account = NULL, ...) {
+                            id = NULL,  account = NULL, ...) {
+
+    dots <- list(...)
+    nd <- names(dots)
+
+    if (!length(amount)) {
+        ## TODO: copy ... fields from journal
+
+        ## TODO: add warning if there
+        ##       are non--zero-length fields
+        ans <- list(timestamp = numeric(0),
+                    amount = numeric(0),
+                    price = numeric(0),
+                    instrument = character(0))
+        class(ans) <- "journal"
+        return(ans)
+    }
+    
     if (missing(timestamp))
         timestamp <- NA
     if (missing(instrument) || all(is.na(instrument)))
@@ -30,8 +47,6 @@ journal.default <- function(amount, price, timestamp, instrument,
         price <- NA
     instrument <- as.character(instrument)
 
-    dots <- list(...)
-    nd <- names(dots)
 
     len <- max(length(timestamp),
                length(amount),
@@ -125,7 +140,9 @@ length.journal <- function(x)
 
 sort.journal <- function(x, decreasing = FALSE, by = "timestamp",
                          ..., na.last = TRUE) {
-    o <- order(x[[by]], na.last = na.last, decreasing = decreasing)    
+    o <- do.call(order,
+                 c(unclass(x)[by],
+                   na.last = na.last, decreasing = decreasing))
     for (i in seq_along(unclass(x)))
         x[[i]]<- x[[i]][o]
     x    
@@ -391,12 +408,15 @@ split.journal <- function(x, f, drop = FALSE, ...) {
 
 head.journal <- function(x, n = 6L, ..., by = TRUE) {
     if ((lenx <- length(x)) <= 1L)
-        x
+        return(x)
+    x <- sort(x)
     if (by) {
         insts <- sort(unique(x$instrument))
         ans <- journal()
         for (i in insts) {
             sx <- x[x$instrument == i]
+            if (length(sx) == 0L)
+                next
             ans <- c(ans, sx[seq_len(min(n, length(sx)))])            
         }
         ans
@@ -407,13 +427,14 @@ head.journal <- function(x, n = 6L, ..., by = TRUE) {
 
 tail.journal <- function(x, n = 6L, ..., by = TRUE) {
     if ((lenx <- length(x)) <= 1L)
-        x
+        return(x)
+    x <- sort(x, decreasing = TRUE)
     if (by) {
         insts <- sort(unique(x$instrument))
         ans <- journal()
         for (i in insts) {
             sx <- x[x$instrument == i]
-            if (length(sx == 0L))
+            if (length(sx) == 0L)
                 next
             ans <- c(ans, sx[seq_len(min(n, length(sx)))])            
         }

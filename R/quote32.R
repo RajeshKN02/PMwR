@@ -1,6 +1,6 @@
 ## -*- truncate-lines: t; fill-column: 60; -*-
 
-quote32 <- q32 <- function(price, sep = "(-|')", warn = TRUE) {
+quote32 <- q32 <- function(price, sep = "(-|'|:)", warn = TRUE) {
     if (is.character(price)) {
         if (warn &&
             any(!grepl(paste0("[0-9]+", sep, "?[0-9]+"), price)))
@@ -54,9 +54,9 @@ print.quote32 <- function(x, sep = "-",
     for (i in 0:3)
         frac[attr(x, "fraction") == i] <- fracsym[i+1]
     
-    cat(paste0(attr(x, "handle"), sep,
-               sprintf("%02d", attr(x, "ticks")),
-               frac, ""), sep = "")
+    print.default(paste0(attr(x, "handle"), sep,
+                         sprintf("%02d", attr(x, "ticks")),
+                         frac, ""), quote = FALSE)
     invisible(x)
 }
 
