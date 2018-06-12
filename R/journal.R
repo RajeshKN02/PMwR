@@ -1,4 +1,5 @@
 ## -*- truncate-lines: t; -*-
+## Copyright (C) 2008-18  Enrico Schumann
 
 journal <- function(amount, ...) {
     if (match.call() == "journal()") {
@@ -460,7 +461,7 @@ cashflows <- function(x, multiplier = 1, ...) {
 
 ## ================= [ is.journal ] =================
 
-is.journal <- function (x) 
+is.journal <- function (x)
     inherits(x, "journal")
 
 
@@ -524,7 +525,7 @@ as.journal.rebalance <- function(x, ..., price = TRUE, timestamp = NA,
 }
 
 
-## ================= [ other methods ] =================
+## =========== [ methods for other generics ] ===========
 
 str.journal <- function(object, ...) {
     n <- length(object)
@@ -539,6 +540,74 @@ str.journal <- function(object, ...) {
 toOrg.journal <- function(x, inactive = TRUE, ...) {
     df <- as.data.frame.journal(x)
     if (inherits(df[["timestamp"]], "Date"))
-        df[["timestamp"]] <- toOrg(df[["timestamp"]], inactive = inactive)
+        df[["timestamp"]] <- toOrg(df[["timestamp"]],
+                                   inactive = inactive)
     toOrg(df)
+}
+
+all.equal.journal <- function(target, current,
+                              ignore.sort = TRUE, ...) {
+
+    if (!(inherits(current, "journal")))
+        stop(sQuote("current"), " must be a journal")
+    
+    if (ignore.sort) {
+        ## TODO: may fail with duplicate timestamps
+        default <- c("timestamp", "instrument", "price", "amount")
+        t.f <- names(target)
+        t.f <- sort(setdiff(t.f, default))
+        t.c <- names(current)
+        t.c <- sort(setdiff(t.c, default))
+        
+        target <- sort(target, by = c(default, t.f))
+        current <- sort(current, by = c(default, t.c))        
+    }
+
+    msg <- NULL
+
+    ## LENGTH
+    t.len <- length(target)
+    c.len <- length(current)
+    if (t.len != c.len) {
+        msg <- c(msg,
+                 paste0("lengths differ: target ", t.len,
+                        ", current ", c.len))
+    }
+
+    ## FIELDS
+    t.names <- sort(names(target))
+    c.names <- sort(names(current))
+    if (length(t.names) != length(c.names) ||
+        !all(t.names == c.names)) {
+
+        t.only <- setdiff(t.names, c.names)
+        c.only <- setdiff(c.names, t.names)
+
+        if (length(t.only))
+            t.only <- paste(sQuote(t.only), collapse = ", ")
+        if (length(c.only))
+            c.only <- paste(sQuote(c.only), collapse = ", ")
+        msg <- c(msg,
+                 paste0("fields differ: ",
+                        if (length(t.only))
+                            paste0("target has ", t.only),
+                        if (length(t.only) && length(c.only))
+                            "; ",
+                        if (length(c.only))
+                            paste0("current has ", c.only)))
+    }
+
+    ## CONTENTS
+    for (f in intersect(t.names, c.names)) {
+        tmp <- all.equal(target[[f]], current[[f]])
+        if (!isTRUE(tmp))
+            msg <- c(msg, paste0(f, ": ", tmp))
+    }
+    
+    
+    if (is.null(msg))
+        TRUE
+    else
+        msg
+
 }

@@ -1,4 +1,5 @@
 ## -*- truncate-lines: t; -*-
+## Copyright (C) 2008-18  Enrico Schumann
 
 btest  <- function(prices,
                    signal,
@@ -21,12 +22,19 @@ btest  <- function(prices,
                    Globals = list(),
                    prices0 = NULL,
                    include.data = FALSE,
+                   include.timestamp = TRUE,
                    timestamp, instrument,
                    progressBar = FALSE,
                    allow.na = FALSE) {
 
     L <- lag
 
+    if (!missing(timestamp) &&
+        (inherits(timestamp, "Date") || inherits(timestamp, "POSIXct")) &&
+        inherits(b, class(timestamp))) {
+        b <- matchOrNext(b, timestamp)
+    }
+            
     if ("tradeOnOpen" %in% names(list(...))) {
         warning("Did you mean 'trade.at.open'? See ChangeLog 2017-11-14.")
     }
@@ -172,7 +180,7 @@ btest  <- function(prices,
             computeSignal
     } else if (!missing(timestamp) && inherits(do.rebalance, class(timestamp))) {
         rebalancing_times <- matchOrNext(do.rebalance, timestamp)
-        do.signal <- function(...)
+        do.rebalance <- function(...)
             Time(0L) %in% rebalancing_times
     } else if (is.numeric(do.rebalance)) {
         rebalancing_times <- do.rebalance
@@ -738,6 +746,10 @@ btest  <- function(prices,
                 final.position = if (final.position) final.pos else NA,
                 Globals = Globals)
 
+    if (include.timestamp)
+        ans <- c(ans,
+                 timestamp = list(timestamp))
+
     if (include.data)
         ans <- c(ans,
                  prices = prices,
@@ -746,7 +758,7 @@ btest  <- function(prices,
                  timestamp = list(timestamp),
                  instrument = if (missing(instrument)) NULL else list(instrument),
                  call = match.call())
-
+        
     class(ans) <- "btest"
     ans
 }

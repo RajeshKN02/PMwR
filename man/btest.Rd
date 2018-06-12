@@ -14,9 +14,11 @@ btest(prices, signal,
       initial.position = 0, initial.cash = 0,
       final.position = FALSE,
       cashflow = NULL, tc = 0, \dots,
-      add = FALSE, lag = 1, convert.weights = FALSE, trade.at.open = TRUE,
-      tol = 1e-5, Globals = list(),
-      prices0 = NULL, include.data = FALSE, timestamp, instrument,
+      add = FALSE, lag = 1, convert.weights = FALSE,
+      trade.at.open = TRUE, tol = 1e-5, Globals = list(),
+      prices0 = NULL,
+      include.data = FALSE, include.timestamp = TRUE,
+      timestamp, instrument,
       progressBar = FALSE)
 }
 \arguments{
@@ -136,8 +138,18 @@ btest(prices, signal,
   }
   \item{include.data}{
 
-    logical. If \code{TRUE}, all passed data are stored in final
-    \code{btest} object. (See Value.)
+    logical. If \code{TRUE}, all passed data are stored
+    in final \code{btest} object. See Section
+    Value. See also argument \code{include.timestamp}.
+    
+  }
+  \item{include.timestamp}{
+
+    logical. If \code{TRUE}, \code{timestamp} is stored
+    in final \code{btest} object. If \code{timestamp}
+    is missing, integers 1, 2, \ldots are used. See
+    Section Value.  See also argument
+    \code{include.data}.
     
   }
   \item{timestamp}{
@@ -223,7 +235,7 @@ btest(prices, signal,
 
 }
 \references{
-Schumann, E. (2017) \emph{Portfolio Management
+Schumann, E. (2018) \emph{Portfolio Management
   with R}. \url{http://enricoschumann.net/PMwR/}
 } 
 \author{
@@ -262,8 +274,8 @@ journal(solution)
 
 ## 2 - a simple MA model
 \dontrun{
-require("PMwR")
-require("NMOF")
+library("PMwR")
+library("NMOF")
 
 dax <- DAX[[1]]
 
@@ -285,8 +297,11 @@ res <- btest(dax, signal = ma_strat,
              b = n, ma = ma)
 
 par(mfrow = c(3,1))
-plot(as.Date(row.names(DAX)), dax, type = "l", xlab = "", ylab = "DAX")
-plot(as.Date(row.names(DAX)), res$wealth, type = "l", xlab = "", ylab = "Equity")
-plot(as.Date(row.names(DAX)), position(res), type = "s", xlab = "", ylab = "Position")
+plot(as.Date(row.names(DAX)), dax, type = "l",
+     xlab = "", ylab = "DAX")
+plot(as.Date(row.names(DAX)), res$wealth, type = "l",
+     xlab = "", ylab = "Equity")
+plot(as.Date(row.names(DAX)), position(res), type = "s",
+     xlab = "", ylab = "Position")
 }
 }

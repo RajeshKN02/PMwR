@@ -23,7 +23,7 @@ drawdowns(x, \dots)
 }
 \details{
 
-  \code{drawdowns} is a generic function. It computes drawdowns
+  \code{drawdowns} is a generic function. It computes drawdown
   statistics: maximum; and time of peak, trough and recovery.
 
 }
@@ -32,12 +32,25 @@ drawdowns(x, \dots)
   a \code{\link{data.frame}}
   
 }
+\seealso{
+
+  the actual computation of the drawdowns is done by function
+  \code{\link[NMOF]{drawdown}} in package \pkg{NMOF}
+
+}
 \author{
   Enrico Schumann
 }
-\seealso{
-  \code{\link[NMOF]{drawdown}}
-}
+\references{
+
+Gilli, M., Maringer, D. and Schumann, E. (2011) \emph{Numerical Methods
+and Optimization in Finance}. Elsevier.
+\url{http://www.elsevierdirect.com/product.jsp?isbn=9780123756626}
+
+Schumann, E. (2018) \emph{Portfolio Management
+  with R}. \url{http://enricoschumann.net/PMwR/}
+
+} 
 \examples{
 
 x <- c(100, 98)

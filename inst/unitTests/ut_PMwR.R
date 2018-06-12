@@ -2,14 +2,14 @@
 
 test.position <- function() {
 
-    require("zoo", quietly = TRUE, warn.conflicts = FALSE)
+    library("zoo", quietly = TRUE, warn.conflicts = FALSE)
 
     checkEqualsNumeric(position(amount = 1:5), 15)
 
     ## ERROR: at least 'amount' needs to be specified
     checkException(position(), silent = TRUE)
 
-    
+
     ## Construct position from raw data or from journal
     t <- 1:5
     n <- c(1, 1, -1, 3, -4)
@@ -32,7 +32,7 @@ test.position <- function() {
     checkEquals(position(amount = n, timestamp = t, when = c(-10,1.4,4.9,10)),
                 position(j, when = c(-10,1.4,4.9,10)))
 
-    
+
     ## Ops
     x <- position(amount = 1, instrument = c("a"))
     y <- position(amount = 1:2, instrument = c("a","b"))
@@ -53,7 +53,7 @@ test.position <- function() {
                                     when = "endofmonth")),
                 1:12)
 
-    
+
     ## ... endofday
     t <- as.POSIXct(c("2017-11-17 12:00:00",
                       "2017-11-17 13:00:00",
@@ -70,7 +70,7 @@ test.position <- function() {
 
     checkEquals(as.numeric(res), 0:1)
     checkEquals(attr(res, "timestamp"), unique(as.Date(t)))
-    
+
 }
 
 test.split_trades <- function() {
@@ -84,8 +84,8 @@ test.split_trades <- function() {
                                     timestamp = 1:2),
                                .Names = c("amount", "price", "timestamp"))))
 
-    
-    
+
+
     amount <- c(1, -2, 1)
     price <- c(1,2,3)
     ans <- split_trades(amount, price, seq_along(amount))
@@ -101,7 +101,7 @@ test.split_trades <- function() {
                                price = c(2, 3),
                                timestamp = 2:3),
                           .Names = c("amount", "price", "timestamp")))
-    
+
     n <- c(1,1,-3,1)
     p <- c(1,2,3,2)
     tradetimes <- seq_along(n)
@@ -111,7 +111,7 @@ test.split_trades <- function() {
 
 test.btest <- function() {
 
-    require("zoo", quietly = TRUE, warn.conflicts = FALSE)
+    library("zoo", quietly = TRUE, warn.conflicts = FALSE)
 
     btTable <- function(solution, prices)
         data.frame(prices = prices,
@@ -121,7 +121,7 @@ test.btest <- function() {
                    cash   = solution$cash)
 
     prices <- c(100,98,98,97,101,102,101,98,99,101)
-    
+
     ## signal returns NULL: not trade at all
     signal <- function()
         NULL
@@ -172,7 +172,7 @@ test.btest <- function() {
     checkEquals(drop(solution$wealth), rep(0, length(prices)))
     checkEquals(drop(solution$suggested.position), rep(0, length(prices)))
     checkEquals(solution$journal, journal())
-    
+
 
     solution <- btest(prices = prices, signal = signal, convert.weights = TRUE,
                       initial.cash = 1000)
@@ -233,7 +233,7 @@ test.btest <- function() {
                 c(solution$position[9,]))
     checkEquals(c(signal()*solution$wealth[8]/prices2[8,]),
                 c(solution$position[10,]))
-    
+
     ## signal returns a weight, 3 assets
     prices3 <- cbind(A = prices, B = prices/2, C = prices/3)
     signal <- function()
@@ -266,7 +266,7 @@ test.btest <- function() {
 
 
     ## with timestamp
-    require("datetimeutils", quietly = TRUE)
+    library("datetimeutils", quietly = TRUE)
     timestamp <- seq(from = as.Date("2015-01-01"),
                      to   = as.Date("2015-04-15"),
                      by   = "1 day")
@@ -299,10 +299,10 @@ test.btest <- function() {
                  timestamp = timestamp)
     res$journal
 
-    
+
     ## check whether date is matched against
     ## timestamp. The 31 Jan is not in timestamp, so
-    ## trade takes place on next day (2 Feb)    
+    ## trade takes place on next day (2 Feb)
     res <- btest(list(prices),
                  signal = function() c(0.5,0.5),
                  convert.weights = TRUE,
@@ -311,7 +311,7 @@ test.btest <- function() {
                  initial.cash = 100,
                  timestamp = timestamp)
     checkEquals(unique(res$journal$timestamp),
-                as.Date(c("2015-01-08", "2015-02-02")))    
+                as.Date(c("2015-01-08", "2015-02-02")))
     checkEquals(length(res$journal), 4)
 
 
@@ -326,9 +326,9 @@ test.btest <- function() {
                        3279, 3269, 3182, 3205, 3272, 3185,
                        3201, 3236, 3272, 3224, 3194, 3188,
                        3213, 3255, 3261),
-                     .Dim = c(57L, 1L), 
+                     .Dim = c(57L, 1L),
                      .Dimnames = list(
-                         NULL, "fesx201509"), 
+                         NULL, "fesx201509"),
                      index = structure(
                          c(16617L, 16618L, 16619L, 16622L,
                            16623L, 16624L, 16625L, 16626L,
@@ -360,7 +360,7 @@ test.btest <- function() {
                                           ## is 2: first trade is at
                                           ## t==2, since the default
                                           ## lag of 1 is in force
-    
+
     checkTrue(all(res$timestamp == seq(2, length(tmp))))
 
     ## buy at specified timestamps (integers; no lag!)
@@ -369,21 +369,21 @@ test.btest <- function() {
                        signal = signal,
                        do.signal = when))
     checkEquals(j$timestamp, when)
-    
+
     ## logical
-    j1 <- journal(btest(prices = prices, signal = signal, 
+    j1 <- journal(btest(prices = prices, signal = signal,
                        do.signal = prices > 3600))
-    j2 <- journal(btest(prices = prices, signal = signal, 
+    j2 <- journal(btest(prices = prices, signal = signal,
                        do.signal = function() Close(0L) > 3600))
     checkEquals(j1, j2)
-    
+
 
     ## do.rebalance FALSE -- strategy never trades
     ## promote warning to error
     ## options(warn=2)
     ## checkException({
     ##     options(warn=10);
-    ##     btest(prices = prices, signal = signal, 
+    ##     btest(prices = prices, signal = signal,
     ##           do.signal = TRUE,
     ##           do.rebalance = FALSE)
     ## })
@@ -396,29 +396,28 @@ test.btest <- function() {
 
     when <- c(10,20)
     j <- journal(btest(prices = prices,
-                       signal = signal, 
+                       signal = signal,
                        do.rebalance = when))
     checkEquals(j$timestamp, when)
 
 
     ## keywords
     j <- journal(btest(prices = prices,
-                       signal = signal, 
+                       signal = signal,
                        do.signal = "firstofmonth",
                        timestamp = timestamp,
                        b = 0))
-    
+
     checkEquals(j$timestamp,
                 PMwR:::first(timestamp, format(timestamp, "%Y-%m")))
-    
+
     j <- journal(btest(prices = prices,
-                       signal = signal, 
+                       signal = signal,
                        do.signal = "lastofmonth",
                        timestamp = timestamp))
     checkEquals(j$timestamp,
                 PMwR:::last(timestamp, format(timestamp, "%Y-%m")))
 
-    
 
     ## include.data
     prices <- c(100,98,98,97,101,102,101,98,99,101)
@@ -431,7 +430,7 @@ test.btest <- function() {
     checkEquals(res$prices, prices)
     checkEquals(body(res$signal), body(signal))
     ## !is.list(prices) && is.null(dim(prices))
-    
+
     prices <- c(100,98,98,97,101,102,101,98,99,101)
     prices <- cbind(prices, prices)
     res <- btest(list(prices), signal = signal, include.data = TRUE)
@@ -454,6 +453,14 @@ test.btest <- function() {
     btest(prices, signal, lag = 0, b=3)$journal
     btest(prices, signal, lag = 2, b=3)$journal
 
+
+    checkEquals(
+        journal(btest(
+            1:10,
+            signal = function() 1,
+            b = as.Date("2018-1-5"),
+            timestamp = as.Date("2018-1-1")+0:9))$timestamp,
+        as.Date("2018-1-6"))
 
 
     
@@ -491,13 +498,16 @@ test.journal <- function() {
                                      "price", "instrument"),
                           class = "journal"))
 
-    checkEquals(as.journal(data.frame(amount = numeric(0),
-                                      comment = character(0),
-                                      stringsAsFactors = FALSE)),
-                structure(list(amount = numeric(0),
-                               comment = character(0)),
-                          .Names = c("amount", "comment"),
-                          class = "journal"))
+    ## FIXME as.journal.data.frame may create invalid journals
+    ##       when there are no transactions
+    ##
+    ## checkEquals(as.journal(data.frame(amount = numeric(0),
+    ##                                   comment = character(0),
+    ##                                   stringsAsFactors = FALSE)),
+    ##             structure(list(amount = numeric(0),
+    ##                            comment = character(0)),
+    ##                       .Names = c("amount", "comment"),
+    ##                       class = "journal"))
     
     checkEquals(journal(),
                 c(journal(), journal()))
@@ -616,9 +626,18 @@ test.journal <- function() {
     
     ## not ok: replace journal as a whole
     checkException(j[1]$amount <- 10, silent = TRUE)
+    
+}
 
+test.journal.all.equal <- function() {
+    j1 <- journal(amount = 1:10, fees = 5)
+    j2 <- journal(fees = 5, amount = 1:10)
+    checkTrue(isTRUE(all.equal(j1, j2)))
 
-   
+    j1 <- journal(amount = 1:10, timestamp = 1:10)
+    j2 <- journal(amount = 10:1, timestamp = 10:1)
+    checkTrue(isTRUE(all.equal(j1, j2)))
+    checkTrue(!isTRUE(all.equal(j1, j2, ignore.sort = FALSE)))    
 }
 
 test..pl_stats <- function() {
@@ -855,8 +874,8 @@ test.pl <- function() {
     ## data.frame(cumsum(amount), price, pnl, real, unreal)
     
     
-    ## require("PMwR")
-    ## require("RUnit")
+    ## library("PMwR")
+    ## library("RUnit")
 
     ## multiplier
     checkEquals(pl(amount = c(1, -1),
@@ -1141,7 +1160,7 @@ test.quote32 <- function() {
     
 }
 
-test.vprice <- function() {
+test.pl.vprice <- function() {
 
     ## single trade, instrument unnamed
     j <- journal(amount = 1, price = 20)
@@ -1288,44 +1307,99 @@ test.vprice <- function() {
 
 test.rebalance <- function() {
 
+    ## WITHOUT NAMES
+
     current <- c(0,0,100,100)
     prices  <- c(1,1,1,1)
     target  <- c(0.25, 0.25, 0.25, 0.25)
-    x <- rebalance(current, target, prices, match.names = FALSE)
+
+    ## missing names should raise error 
+    checkException(rebalance(current, target, prices),
+                   silent = TRUE)
+
+    x <- rebalance(current, target, prices,
+                   match.names = FALSE)
     checkEquals(x$target, rep(50, 4))
 
+    x <- rebalance(current, target, prices,
+                   multiplier = 10,
+                   match.names = FALSE)
     
-    ## no initial position: 'current' is 0
+    ### ... no initial position: 'current' is 0
     current <- 0
-    prices  <- c(1,1,1,2)
     target  <- c(0.25, 0.25, 0.25, 0.25)
     x <- rebalance(current, target, prices,
                    match.names = FALSE, notional = 100)
-    checkEquals(x$target, c(rep(25,3), 12))
+    checkEquals(x$target, rep(25, 4))
 
+    x <- rebalance(current, target, prices,
+                   match.names = FALSE, notional = 200)
+    checkEquals(x$target, rep(50, 4))
     
-    ## liquidate all: 'target' is 0
-    current <- c(0,0,100,100)
+    checkException(
+        rebalance(current, target, prices,  ## current is 0, so
+                  match.names = FALSE),     ## notional must be specified
+        silent = TRUE)
+    
+    ### ... liquidate all: 'target' is 0
+    current <- c(1,1,1,1)
     x <- rebalance(current, target = 0, prices,
-                   match.names = FALSE, notional = 100)
+                   match.names = FALSE)
+    checkEquals(x$target, rep(0, 4))
+
+    current <- c(0,0,-1,-1)
+    x <- rebalance(current, target = 0, prices,
+                   match.names = FALSE)
     checkEquals(x$target, rep(0,4))
 
-    current <- c(0,0,-100,-100)
-    x <- rebalance(current, target = 0, prices,
+    
+    ### ... no position and move to target weight
+    x <- rebalance(current = 0, target = 0.25, prices,
                    match.names = FALSE, notional = 100)
-    checkEquals(x$target, rep(0,4))
+    checkEquals(x$target, rep(25, 4))
+    checkEquals(x$difference, rep(25, 4))
+
+    x <- rebalance(current = 0, target = 0.25, prices,
+                   match.names = FALSE, notional = 1000)
+    checkEquals(x$target, rep(250, 4))
+    checkEquals(x$difference, rep(250, 4))
+    
+    checkException( ## target has 2 assets; prices has 4 assets
+        rebalance(current = 0, target = c(0.5,0.5),
+                  prices, match.names = FALSE, notional = 100),
+        silent = TRUE)
+
 
     
-    ## with names
+    
+    ## WITH NAMES (match.names == TRUE is default)
+
     prices  <- c(1,1,1,1)
     names(prices) <- letters[1:4]
 
     current <- c(b = 10)
     target  <- c(d = 0.1)
 
-    x <- rebalance(current, target, prices, match.names = TRUE)
+    x <- rebalance(current, target, prices)
     checkEquals(x$target, c(0,1))
 
+    prices <- c(A = 1, B = 2, C = 3)
+    x <- rebalance(current = 0,
+                   target = 0.33,
+                   price = prices,
+                   notional = 100)
+    checkEquals(x$target, c(33, 16, 11))
+    checkEquals(x$target, x$difference)
+    
+    prices <- c(A = 1, B = 2, C = 3)
+    x <- rebalance(current = 0,
+              target = 0.1,
+              price = prices,
+              notional = 100)
+    checkEquals(x$target, c(10, 5, 3))
+    checkEquals(x$target, x$difference)
+
+    
     
     ##  with position/journal
     j <- journal(amount = c(1, 2),
@@ -1381,7 +1455,7 @@ test.rebalance <- function() {
 ## target <- c(0.2, 0, 0.3)
 ## rebalance(current, target, price, match.names = FALSE)
 
-## require("PMwR")
+## library("PMwR")
 
 ## j <- journal(amount = c(1, 2),
 ##              instrument = c("A", "B"),
@@ -1436,7 +1510,7 @@ test.as.journal <- function() {
 
 test.returns <- function() {
 
-    require("zoo", quietly = TRUE, warn.conflicts = FALSE)
+    library("zoo", quietly = TRUE, warn.conflicts = FALSE)
 
     ## numeric vector
     x <- 101:112
@@ -1502,7 +1576,7 @@ test.returns <- function() {
     ## period, but no timestamp: period is ignored
     ## timestamp, but no period: timestamp is ignored
     ##
-    ## (when there is no period, methods are required
+    ## (when there is no period/rebalance.when, methods are required
     ## to keep timestamp information for themselves and
     ## then to re-assemble the necessary class
     ## structure)
@@ -1560,7 +1634,7 @@ test.returns <- function() {
                                           "2012-12-31")),t)]))
 
     
-    ## returns with weights
+    ## portfolio returns with weights
     x <- 101:112
     t <- seq_along(x)
     x <- cbind(x+rnorm(length(x)), x+rnorm(length(x)))
@@ -1586,48 +1660,89 @@ test.returns <- function() {
         sort(names(attributes(returns(zoo(x,t), weights = c(1,0))))),
         c("class", "contributions", "holdings", "index"))
 
+    ## ... match rebalance.when against timestamp
+    h <- attr(returns(x, weights = c(0.2, 0.8),
+                      rebalance.when = 1),
+              "holdings")
+    checkTrue(all(apply(h, 2,
+                        function(x) length(unique(x))) == 1L))
+    h <- attr(returns(x, weights = c(0.2, 0.8),
+                      rebalance.when = 3),
+              "holdings")
+    checkTrue(all(apply(h, 2,
+                        function(x) length(unique(x))) == 2L))
 
-
+    h <- attr(returns(x, weights = c(0.2, 0.8),
+                      rebalance.when = 3),
+              "holdings")
+    h2 <- attr(returns(x, weights = c(0.2, 0.8),
+                      rebalance.when = c(1,3)),
+              "holdings")
+    checkEquals(h, h2)
     
+    
+    x <- 101:110
+    t <- as.Date("2017-1-1")+1:10
+    x <- cbind(x + rnorm(length(x)),
+               x + rnorm(length(x)))
+    h1 <- attr(returns(x, t = t, weights = c(0.2, 0.8),
+                      rebalance.when = as.Date("2017-1-4")),
+              "holdings")
+    checkTrue(all(apply(h1, 2,
+                        function(x) length(unique(x))) == 2L))
+    h2 <- attr(returns(zoo(x, t), weights = c(0.2, 0.8),
+                      rebalance.when = as.Date("2017-1-4")),
+              "holdings")
+    checkTrue(all(apply(h2, 2,
+                        function(x) length(unique(x))) == 2L))
+    checkEquals(h1, h2)
+    h3 <- attr(returns(x, t = t, weights = c(0.2, 0.8),
+                      rebalance.when = 3),
+              "holdings")
+    checkEquals(h1, h3)
+    h4 <- attr(returns(zoo(x, t), weights = c(0.2, 0.8),
+                      rebalance.when = 3),
+              "holdings")
+    checkEquals(h1, h4)
     
     
     ## time-weighted returns
-    x <- 101:105
-    checkEquals(returns(x, position = c(1, 1, 1, 1, 1)),
-                returns(x))
-    checkEquals(returns(x, position = c(1, 1, 1, 1, 1), pad = NA),
-                returns(x, pad = NA))
+    ## x <- 101:105
+    ## checkEquals(returns(x, position = c(1, 1, 1, 1, 1)),
+    ##             returns(x))
+    ## checkEquals(returns(x, position = c(1, 1, 1, 1, 1), pad = NA),
+    ##             returns(x, pad = NA))
 
-    tmp <- returns(x)
-    tmp[4] <- 0
-    checkEquals(returns(x, position = c(1, 1, 1, 0, 0)),
-                tmp)
+    ## tmp <- returns(x)
+    ## tmp[4] <- 0
+    ## checkEquals(returns(x, position = c(1, 1, 1, 0, 0)),
+    ##             tmp)
     
-    checkEquals(returns(x, position = c(1,1,2,2,3)),
-                returns(x))
-    checkEquals(returns(x, position = c(0,0,0,0,0)),
-                rep(0, 4))
+    ## checkEquals(returns(x, position = c(1,1,2,2,3)),
+    ##             returns(x))
+    ## checkEquals(returns(x, position = c(0,0,0,0,0)),
+    ##             rep(0, 4))
     
-    pos <- c(1,1,1,2,2,0)
-    price <- c(100,100,100,100,100,100)
-    dim(pos) <- dim(price) <- c(3, 2)
-    checkEquals(returns(price, position = pos), returns(price[ ,1]))
-    checkEquals(returns(price, position = pos),
-                rowSums((price*pos / rowSums(price*pos))[-3, ] * returns(price)))
+    ## pos <- c(1,1,1,2,2,0)
+    ## price <- c(100,100,100,100,100,100)
+    ## dim(pos) <- dim(price) <- c(3, 2)
+    ## checkEquals(returns(price, position = pos), returns(price[ ,1]))
+    ## checkEquals(returns(price, position = pos),
+    ##             rowSums((price*pos / rowSums(price*pos))[-3, ] * returns(price)))
 
-    pos[ ,2] <- 0
-    checkEquals(returns(price, position = pos),
-                returns(price[,1]))
+    ## pos[ ,2] <- 0
+    ## checkEquals(returns(price, position = pos),
+    ##             returns(price[,1]))
     
-    pos1 <- c(1,1,1,2,2,2)
-    pos2 <- pos1 * 2
-    price <- c(101,102,103,103,105,107)
-    dim(price) <- dim(pos2) <- dim(pos1) <- c(3,2)
+    ## pos1 <- c(1,1,1,2,2,2)
+    ## pos2 <- pos1 * 2
+    ## price <- c(101,102,103,103,105,107)
+    ## dim(price) <- dim(pos2) <- dim(pos1) <- c(3,2)
 
-    checkEquals(returns(price, position = pos1),
-                rowSums((price*pos1 / rowSums(price*pos1))[-3, ] * returns(price)))
-    checkEquals(returns(price, position = pos1),
-                returns(price, position = pos2))
+    ## checkEquals(returns(price, position = pos1),
+    ##             rowSums((price*pos1 / rowSums(price*pos1))[-3, ] * returns(price)))
+    ## checkEquals(returns(price, position = pos1),
+    ##             returns(price, position = pos2))
     
 
     ## from journal to time-weighted returns
@@ -1643,11 +1758,6 @@ test.returns <- function() {
     rowSums(p*prices)
 
 
-    ## weights/rebalance.when
-    ## TODO: add tests
-
-
-    
     ## missing values
     x <- zoo(c(NA, 2:5), as.Date("2017-10-27") + 1:5)
     checkEqualsNumeric(unclass(returns(x, period = "month")), c(NA, 0.25))
@@ -1787,8 +1897,8 @@ test.is_valid_ISIN <- function() {
 
 test.NAVseries <- function() {
 
-    ## require("PMwR")
-    ## require("RUnit")
+    library("PMwR")
+    library("RUnit")
 
     nav <- NAVseries(1:10)
     checkEquals(c(nav), 1:10)
@@ -1862,6 +1972,19 @@ test.NAVseries <- function() {
                 b = 5, initial.cash = 100)
     checkEqualsNumeric(as.NAVseries(bt, drop.NA = FALSE),
                        c(NA, NA, NA, NA, 100, 100, 101, 102, 103, 104))
+
+
+}
+
+test.NAVseries.window <- function() {
+
+    x <- NAVseries(101:110, 1:10)
+
+    checkEquals(window(x, 2, 3),
+                structure(102:103, timestamp = 2:3,
+                          description = character(0),
+                          class = "NAVseries"))    
+    checkEquals(window(x), x)    
 }
 
 test.pricetable <- function() {
