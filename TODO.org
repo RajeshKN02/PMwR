@@ -4,12 +4,20 @@
 
 * general
 
+** make a list of options
+
+   only used in print methods
+
 
 * =btest=
 
 ** support multiplier?
 
-.
+** add =pl= method
+
+   for open positions, use last price as =vprice=
+
+
 * =pricetable=
 
 ** add 'drop' argument to return matrix?
@@ -23,12 +31,6 @@
    endofquarter
 
 
-* =journal= [1/1]
-
-** DONE all.equal method
-   CLOSED: [2018-05-28 Mon 17:05]
-
-
 * =returns= [0/2]
 
 ** TODO =YTM= holding-period returns
@@ -36,6 +38,8 @@
    beginning of year to end of previous month
 
 ** TODO print: allow printing in basispoints
+
+
 
 * =valuation=
 
