@@ -181,10 +181,16 @@ single instrument: moving average
 
 returns in unit of instrument
 
+show how to run btest in parallel
+
+
+
 
 vol targeting
 A trivial strategy
 
+risk-parity
+inverse vol weights : convert.weights = TRUE
 
 
 
